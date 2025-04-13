@@ -1,0 +1,61 @@
+DECLARE @Flowers TABLE(Name nvarchar(20));
+INSERT INTO @Flowers VALUES 
+('Rose'),
+('Tulip'),
+('Daisy'),
+('Forget-me-not'),
+('Lilac'),
+('Narcissus'),
+('Camomile'),
+('Lily of the valley');
+
+-- Временная таблица для хранения результатов
+CREATE TABLE #Combinations (Combination nvarchar(max));
+
+-- Переменные для цикла
+DECLARE @i INT, @j INT, @currentCombination nvarchar(max);
+
+-- Получаем количество цветов
+DECLARE @count INT = (SELECT COUNT(*) FROM @Flowers);
+
+-- Генерируем все возможные комбинации
+SET @i = 1;
+WHILE @i <= @count - 4 -- 8 - 5 + 1 = 4
+BEGIN
+    SET @j = @i + 1;
+    WHILE @j <= @count - 3 -- 8 - 5 + 2 = 5
+    BEGIN
+        DECLARE @k INT;
+        SET @k = @j + 1;
+        WHILE @k <= @count - 2 -- 8 - 5 + 3 = 6
+        BEGIN
+            DECLARE @l INT;
+            SET @l = @k + 1;
+            WHILE @l <= @count - 1 -- 8 - 5 + 4 = 7
+            BEGIN
+                DECLARE @m INT;
+                SET @m = @l + 1;
+                WHILE @m <= @count -- до последнего элемента (8)
+                BEGIN
+                    SELECT 
+                        @currentCombination = 
+                        (SELECT STRING_AGG(Name, ' ') 
+                         FROM (VALUES 
+                             (SELECT Name FROM (SELECT Name, ROW_NUMBER() OVER (ORDER BY Name) AS RowNum FROM @Flowers) AS T WHERE RowNum IN (@i, @j, @k, @l, @m)) AS V(Name)) AS T)
+                    INSERT INTO #Combinations (Combination) VALUES (@currentCombination);
+                    SET @m = @m + 1;
+                END
+                SET @l = @l + 1;
+            END
+            SET @k = @k + 1;
+        END
+        SET @j = @j + 1;
+    END
+    SET @i = @i + 1;
+END
+
+-- Выводим результаты
+SELECT * FROM #Combinations;
+
+-- Удаляем временную таблицу после использования
+DROP TABLE #Combinations;
